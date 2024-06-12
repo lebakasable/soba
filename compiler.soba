@@ -571,18 +571,22 @@ fn parse_string_literal builder: u64 token: (u64 u64) > u64 (
   (LLVMBuildPtrToInt builder ptr (LLVMInt64Type) "")
 )
 
-fn parse_character_literal token: (u64 u64) > u64 (
+fn parse_character_literal l: u64 token: (u64 u64) > u64 (
   let byte (read8 (add 1 .0 token))
   let byte if (ne byte '\\)
       byte
   let byte (read8 (add 2 .0 token))
   if (eq byte '\\)
-      '\\
+    '\\
   if (eq byte 'n)
-      '\n
+    '\n
   if (eq byte 't)
-      '\t
-  (assert 0 "invalid character escape sequence")
+    '\t
+  do (
+    (printf "%d: invalid character escape sequence `%c`" (current_line_number l) byte)
+    (putchar '\n)
+    (die)
+  )
   (LLVMConstInt (LLVMInt64Type) byte 0)
 )
 
@@ -613,7 +617,7 @@ fn parse_expression_or_rparen l: u64 builder: u64 vars: u64 fns: u64 in_block: u
   if (token_is token '")
     (parse_string_literal builder token)
   if (token_is token '')
-    (parse_character_literal token)
+    (parse_character_literal l token)
   if (token_is token '.)
     (parse_field_access l builder vars fns)
   if (is_integer_literal token)
