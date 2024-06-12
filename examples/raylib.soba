@@ -1,0 +1,19 @@
+fn extern variadic printf fmt: u64 > u64.
+fn extern InitWindow width: u64 height: u64 title: u64 > u64.
+fn extern CloseWindow > u64.
+fn extern WindowShouldClose > bool.
+fn extern BeginDrawing > u64.
+fn extern EndDrawing > u64.
+fn extern ClearBackground color: u64 > u64.
+fn extern GetColor color: u64 > u64.
+
+fn extern main > u64 (
+  (InitWindow 800 600 "Raylib")
+  defer (CloseWindow)
+  while (eq (WindowShouldClose) false) do (
+    (BeginDrawing)
+    (ClearBackground (GetColor 387393535))
+    (EndDrawing)
+  )
+  0
+)
