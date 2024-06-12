@@ -1,0 +1,7 @@
+*.bc
+!bootstrap.bc
+bootstrap
+compiler
+stage*
+examples/*
+!examples/*.soba
