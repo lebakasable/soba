@@ -661,16 +661,17 @@ fn error_unknown_function name: u64 line_number: u64 > u64 (
 )
 
 fn expects_n_args name: u64 line_number: u64 expected: u64 got: u64 > u64 (
-  if (ne expected got) do (
-    (printf "%zu: function `%s` expects %d arguments" line_number name expected got)
+  if (ne got expected) do (
+    (printf "%zu: function `%s` expects %d arguments, but got %d" line_number name expected got)
     (putchar '\n)
     (die)
   ) 0
 )
 
-fn expects_many_args name: u64 line_number: u64 got: u64 > u64 (
-  if (eq got 0) do (
-    (printf "%d: function `%s` expects at least one argument" line_number name)
+fn expects_at_least_n_args name: u64 line_number: u64 expected: u64 got: u64 > u64 (
+  if (lt got expected) do (
+    let plural if (le expected 1) "argument" "arguments"
+    (printf "%d: function `%s` expects at least %d %s, but got %d" line_number name expected plural got)
     (putchar '\n)
     (die)
   ) 0
@@ -738,7 +739,7 @@ fn call_function builder: u64 fns: u64 name: u64 line_number: u64 args: u64 arg_
     let src (LLVMBuildIntToPtr builder (read (add 8 args)) ptr_type "")
     (LLVMBuildMemCpy builder dest 1 src 1 (read (add 16 args)))
   ) if (streq name "array") do (
-    (expects_many_args name line_number arg_count)
+    (expects_at_least_n_args name line_number 1 arg_count)
     let i64 (LLVMInt64Type)
     let type (LLVMTypeOf (read args))
     let array_ptr (LLVMBuildArrayAlloca
@@ -759,10 +760,9 @@ fn call_function builder: u64 fns: u64 name: u64 line_number: u64 args: u64 arg_
     let type (read (add fns (mul 8 (add i MAX_FUNCTIONS))))
     let ref (read (add fns (mul 8 (add i (mul 2 MAX_FUNCTIONS)))))
     let param_count (LLVMCountParamTypes type)
-    let correct_arg_count if (LLVMIsFunctionVarArg type)
-      (ge arg_count param_count)
-      (eq arg_count param_count)
-    (assert correct_arg_count "wrong number of arguments to function call")
+    if (LLVMIsFunctionVarArg type)
+      (expects_at_least_n_args name line_number param_count arg_count)
+      (expects_n_args name line_number param_count arg_count)
     (LLVMBuildCall2 builder type ref args arg_count "")
   )
 )
