@@ -189,7 +189,11 @@ fn next_token_length l: u64 > u64 (
     1
   if (eq (read8 line) '") do (
     let end_quote (memchr (add line 1) '" (sub len 1))
-    (assert end_quote "unterminated string literal")
+    or end_quote do (
+      (printf "%d: unterminated string literal" (current_line_number l))
+      (putchar '\n)
+      (die)
+    )
     (add (sub end_quote line) 1)
   ) if (eq (read8 line) '') do (
     (assert (ge len 2) "unterminated character literal")
@@ -198,7 +202,11 @@ fn next_token_length l: u64 > u64 (
       3
     ) 2
   ) do (
-    (assert (is_identifier_part (read8 line)) "invalid character in source code")
+    or (is_identifier_part (read8 line)) do (
+      (printf "%d: invalid character `%c`" (current_line_number l) (read8 line))
+      (putchar '\n)
+      (die)
+    )
     let i (array 1)
     while and (lt (read i) len) (is_identifier_part (read8 (add line (read i))))
       (inc i)
@@ -417,7 +425,11 @@ fn parse_expression_or_rest_of_block l: u64 builder: u64 vars: u64 fns: u64 in_b
 
 fn parse_let l: u64 builder: u64 vars: u64 fns: u64 in_block: u64 > u64 (
   let var_name (next_token l)
-  (assert (token_is_identifier var_name) "expected a variable name after `let`")
+  or (token_is_identifier var_name) do (
+    (printf "%d: expected a variable name after `let`" (current_line_number l))
+    (putchar '\n)
+    (die)
+  )
   let name (tokdupz var_name)
   let value (parse_expression l builder vars fns)
   (add_variable vars name value)
@@ -609,8 +621,13 @@ fn parse_expression_or_rparen l: u64 builder: u64 vars: u64 fns: u64 in_block: u
     (parse_if l builder vars fns)
   if (token_eq_str token "do") do (
     let lparen (next_token l)
-    (assert (token_is lparen '() "expected `(` after `do`")
-    (parse_block l builder vars fns)
+    if (token_is lparen '()
+      (parse_block l builder vars fns)
+    do (
+      (printf "%d: expected `(` after `do`" (current_line_number l))
+      (putchar '\n)
+      (die)
+    )
   ) if (token_eq_str token "let")
     (parse_let l builder vars fns in_block)
   if (token_eq_str token "while")
@@ -654,27 +671,21 @@ fn make_tuple builder: u64 elements: u64 element_count: u64 > u64 (
   (read aggregate)
 )
 
-fn error_unknown_function name: u64 line_number: u64 > u64 (
-  (printf "%zu: unknown function: %s" line_number name)
-  (putchar '\n)
-  (die)
-)
-
 fn expects_n_args name: u64 line_number: u64 expected: u64 got: u64 > u64 (
-  if (ne got expected) do (
+  or (eq got expected) do (
     (printf "%zu: function `%s` expects %d arguments, but got %d" line_number name expected got)
     (putchar '\n)
     (die)
-  ) 0
+  )
 )
 
 fn expects_at_least_n_args name: u64 line_number: u64 expected: u64 got: u64 > u64 (
-  if (lt got expected) do (
+  or (ge got expected) do (
     let plural if (le expected 1) "argument" "arguments"
     (printf "%d: function `%s` expects at least %d %s, but got %d" line_number name expected plural got)
     (putchar '\n)
     (die)
-  ) 0
+  )
 )
 
 fn call_function builder: u64 fns: u64 name: u64 line_number: u64 args: u64 arg_count: u64 > u64 (
@@ -755,8 +766,11 @@ fn call_function builder: u64 fns: u64 name: u64 line_number: u64 args: u64 arg_
     (make_tuple builder args arg_count)
   do (
     let i (look_up_function fns name)
-    and (eq i 18446744073709551615)
-        (error_unknown_function name line_number)
+    and (eq i 18446744073709551615) do (
+      (printf "%zu: unknown function `%s`" line_number name)
+      (putchar '\n)
+      (die)
+    )
     let type (read (add fns (mul 8 (add i MAX_FUNCTIONS))))
     let ref (read (add fns (mul 8 (add i (mul 2 MAX_FUNCTIONS)))))
     let param_count (LLVMCountParamTypes type)
@@ -799,8 +813,11 @@ fn parse_function l: u64 module: u64 vars: u64 fns: u64 > u64 (
   let extern (try_eat_keyword l function_name "extern")
   let variadic (try_eat_keyword l function_name "variadic")
   let function_name (tuple (read function_name) (read (add 8 function_name)))
-  (assert (token_is_identifier function_name)
-          "expected function declaration or definition")
+  or (token_is_identifier function_name) do (
+    (printf "%d: expected function declaration or definition" (current_line_number l))
+    (putchar '\n)
+    (die)
+  )
   let name (tokdupz function_name)
 
   let i64 (LLVMInt64Type)
@@ -815,13 +832,24 @@ fn parse_function l: u64 module: u64 vars: u64 fns: u64 > u64 (
     if (token_is token '>)
       (write done 1)
     do (
-      (assert (token_is_identifier token) "expected parameter name or `>`")
-      (assert (lt (read param_count) MAX_PARAMS)
-              "too many function parameters")
+      or (token_is_identifier token) do (
+        (printf "%d: expected parameter name or `>`" (current_line_number l))
+        (putchar '\n)
+        (die)
+      )
+      or (lt (read param_count) MAX_PARAMS) do (
+        (printf "%d: too many function parameters" (current_line_number l))
+        (putchar '\n)
+        (die)
+      )
       let param_name (tokdupz token)
 
       let token (next_token l)
-      (assert (token_is token ':) "expected `:` after function parameter")
+      or (token_is token ':) do (
+        (printf "%d: expected `:` after function parameter" (current_line_number l))
+        (putchar '\n)
+        (die)
+      )
       let param_type (parse_type l)
 
       (write (add param_names (mul 8 (read param_count))) param_name)
@@ -835,7 +863,11 @@ fn parse_function l: u64 module: u64 vars: u64 fns: u64 > u64 (
   let token (next_token l)
   if (token_is token '.)
     (write is_declaration 1)
-  (assert (token_is token '() "expected function body or `.`")
+  or (token_is token '() do (
+    (printf "%d: expected function body or `.`" (current_line_number l))
+    (putchar '\n)
+    (die)
+  )
 
   let param_count (read param_count)
   let function_type (LLVMFunctionType return_type param_types param_count variadic)
@@ -848,10 +880,16 @@ fn parse_function l: u64 module: u64 vars: u64 fns: u64 > u64 (
   ) do (
     let type (read (add fns (mul 8 (add index MAX_FUNCTIONS))))
     let ref (read (add fns (mul 8 (add index (mul 2 MAX_FUNCTIONS)))))
-    (assert (eq function_type type)
-            "function signature does not match forward declaration")
-    (assert (not (LLVMGetFirstBasicBlock ref))
-            "cannot redefine function")
+    or (eq function_type type) do (
+      (printf "%d: function signature does not match forward declaration" (current_line_number l))
+      (putchar '\n)
+      (die)
+    )
+    or (not (LLVMGetFirstBasicBlock ref)) do (
+      (printf "%d: cannot redefine function `%s`" (current_line_number l) name)
+      (putchar '\n)
+      (die)
+    )
     ref
   )
 
@@ -878,11 +916,19 @@ fn parse_function l: u64 module: u64 vars: u64 fns: u64 > u64 (
 
 fn parse_constant l: u64 vars: u64 > u64 (
   let name (next_token l)
-  (assert (token_is_identifier name) "expected identifier after `const`")
+  or (token_is_identifier name) do (
+    (printf "%d: expected identifier after `const`" (current_line_number l))
+    (putchar '\n)
+    (die)
+  )
   let name (tokdupz name)
 
   let value (next_token l)
-  (assert (is_integer_literal value) "constant must be an integer literal")
+  or (is_integer_literal value) do (
+    (printf "%d: constant value must be an integer literal" (current_line_number l))
+    (putchar '\n)
+    (die)
+  )
   let value (parse_integer_literal value)
 
   (add_variable vars name (LLVMConstInt (LLVMInt64Type) value 0))
@@ -895,7 +941,11 @@ fn parse_top_level_item l: u64 module: u64 vars: u64 fns: u64 > u64 (
       (parse_function l module vars fns)
     if (token_eq_str token "const")
       (parse_constant l vars)
-    (assert 0 "unexpected top-level item")
+    do (
+      (printf "%d: unexpected top-level item `%s`" (current_line_number l) (tokdupz token))
+      (putchar '\n)
+      (die)
+    )
     1
   )
 )
