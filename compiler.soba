@@ -635,13 +635,6 @@ fn parse_expression_or_rparen l: u64 builder: u64 vars: u64 fns: u64 in_block: u
   )
 )
 
-fn correct_arg_count arg_count: u64 function_type: u64 > u64 (
-  let param_count (LLVMCountParamTypes function_type)
-  if (LLVMIsFunctionVarArg function_type)
-    (ge arg_count param_count)
-    (eq arg_count param_count)
-)
-
 fn tuple_type elements: u64 element_count: u64 > u64 (
   let element_types (alloca MAX_PARAMS)
   for i element_count
@@ -667,31 +660,47 @@ fn error_unknown_function name: u64 line_number: u64 > u64 (
   (die)
 )
 
+fn expects_n_args name: u64 line_number: u64 expected: u64 got: u64 > u64 (
+  if (ne expected got) do (
+    (printf "%zu: function `%s` expects %d arguments" line_number name expected got)
+    (putchar '\n)
+    (die)
+  ) 0
+)
+
+fn expects_many_args name: u64 line_number: u64 got: u64 > u64 (
+  if (eq got 0) do (
+    (printf "%d: function `%s` expects at least one argument" line_number name)
+    (putchar '\n)
+    (die)
+  ) 0
+)
+
 fn call_function builder: u64 fns: u64 name: u64 line_number: u64 args: u64 arg_count: u64 > u64 (
   if (streq name "add") do (
-    (assert (eq arg_count 2) "expected 2 arguments to `add`")
+    (expects_n_args name line_number 2 arg_count)
     (LLVMBuildAdd builder (read args) (read (add 8 args)) "")
   ) if (streq name "sub") do (
-    (assert (eq arg_count 2) "expected 2 arguments to `sub`")
+    (expects_n_args name line_number 2 arg_count)
     (LLVMBuildSub builder (read args) (read (add 8 args)) "")
   ) if (streq name "mul") do (
-    (assert (eq arg_count 2) "expected 2 arguments to `mul`")
+    (expects_n_args name line_number 2 arg_count)
     (LLVMBuildMul builder (read args) (read (add 8 args)) "")
   ) if (streq name "read") do (
-    (assert (eq arg_count 1) "expected 1 argument to `read`")
+    (expects_n_args name line_number 1 arg_count)
     let i64 (LLVMInt64Type)
     let ptr_type (LLVMPointerType i64 0)
     let ptr (LLVMBuildIntToPtr builder (read args) ptr_type "")
     (LLVMBuildLoad2 builder i64 ptr "")
   ) if (streq name "read8") do (
-    (assert (eq arg_count 1) "expected 1 argument to `read8`")
+    (expects_n_args name line_number 1 arg_count)
     let i8 (LLVMInt8Type)
     let i64 (LLVMInt64Type)
     let ptr_type (LLVMPointerType i64 0)
     let ptr (LLVMBuildIntToPtr builder (read args) ptr_type "")
     (LLVMBuildZExt builder (LLVMBuildLoad2 builder i8 ptr "") i64 "")
   ) if (streq name "write") do (
-    (assert (eq arg_count 2) "expected 2 arguments to `write`")
+    (expects_n_args name line_number 2 arg_count)
     let value (read (add 8 args))
     let type (LLVMTypeOf value)
     let ptr_type (LLVMPointerType type 0)
@@ -699,7 +708,7 @@ fn call_function builder: u64 fns: u64 name: u64 line_number: u64 args: u64 arg_
     (LLVMBuildStore builder value ptr)
     value
   ) if (streq name "write8") do (
-    (assert (eq arg_count 2) "expected 2 arguments to `write8`")
+    (expects_n_args name line_number 2 arg_count)
     let i8 (LLVMInt8Type)
     let ptr_type (LLVMPointerType i8 0)
     let ptr (LLVMBuildIntToPtr builder (read args) ptr_type "")
@@ -707,29 +716,29 @@ fn call_function builder: u64 fns: u64 name: u64 line_number: u64 args: u64 arg_
     (LLVMBuildStore builder value ptr)
     (LLVMBuildZExt builder value (LLVMInt64Type) "")
   ) if (streq name "eq") do (
-    (assert (eq arg_count 2) "expected 2 arguments to `eq`")
+    (expects_n_args name line_number 2 arg_count)
     (LLVMBuildZExt
       builder (LLVMBuildICmp builder 32 (read args) (read (add 8 args)) "")
       (LLVMInt64Type) "")
   ) if (streq name "lt") do (
-    (assert (eq arg_count 2) "expected 2 arguments to `lt`")
+    (expects_n_args name line_number 2 arg_count)
     (LLVMBuildZExt
       builder (LLVMBuildICmp builder 36 (read args) (read (add 8 args)) "")
       (LLVMInt64Type) "")
   ) if (streq name "alloca") do (
-    (assert (eq arg_count 1) "expected 1 argument to `alloca`")
+    (expects_n_args name line_number 1 arg_count)
     let i64 (LLVMInt64Type)
     let ptr (LLVMBuildArrayAlloca builder i64 (read args) "")
     (LLVMBuildPtrToInt builder ptr i64 "")
   ) if (streq name "memcpy") do (
-    (assert (eq arg_count 3) "expected 3 arguments to `memcpy`")
+    (expects_n_args name line_number 3 arg_count)
     let i64 (LLVMInt64Type)
     let ptr_type (LLVMPointerType i64 0)
     let dest (LLVMBuildIntToPtr builder (read args) ptr_type "")
     let src (LLVMBuildIntToPtr builder (read (add 8 args)) ptr_type "")
     (LLVMBuildMemCpy builder dest 1 src 1 (read (add 16 args)))
   ) if (streq name "array") do (
-    (assert arg_count "expected at least 1 argument to `array`")
+    (expects_many_args name line_number arg_count)
     let i64 (LLVMInt64Type)
     let type (LLVMTypeOf (read args))
     let array_ptr (LLVMBuildArrayAlloca
@@ -749,7 +758,11 @@ fn call_function builder: u64 fns: u64 name: u64 line_number: u64 args: u64 arg_
         (error_unknown_function name line_number)
     let type (read (add fns (mul 8 (add i MAX_FUNCTIONS))))
     let ref (read (add fns (mul 8 (add i (mul 2 MAX_FUNCTIONS)))))
-    (assert (correct_arg_count arg_count type) "wrong number of arguments to function call")
+    let param_count (LLVMCountParamTypes type)
+    let correct_arg_count if (LLVMIsFunctionVarArg type)
+      (ge arg_count param_count)
+      (eq arg_count param_count)
+    (assert correct_arg_count "wrong number of arguments to function call")
     (LLVMBuildCall2 builder type ref args arg_count "")
   )
 )
