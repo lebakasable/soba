@@ -1,0 +1,21 @@
+fn extern variadic printf fmt: u64 > u64.
+fn extern putchar c: u64 > u64.
+
+fn extern main > u64 (
+  let a1 (array 1)
+  let a2 (array 1)
+  let a3 (array 2)
+  let sum (array 0)
+
+  while (lt (read a3) 4000000) do (
+    (write a3 (add (read a1) (read a2)))
+    (write sum (add (read sum) (mul (read a3) (eq (rem (read a3) 2) 0))))
+    (write a1 (read a2))
+    (write a2 (read a3))
+  )
+
+  (printf "%d" (read sum))
+  (putchar '\n)
+
+  0
+)

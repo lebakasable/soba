@@ -1,0 +1,19 @@
+fn extern variadic printf fmt: u64 > u64.
+fn extern putchar c: u64 > u64.
+
+fn extern main > u64 (
+  let s1 (array 0)
+  let s2 (array 0)
+
+  let i (array 1)
+  while (lt (read i) 101) do (
+    (write s1 (add (read s1) (mul (read i) (read i))))
+    (write s2 (add (read s2) (read i)))
+    (write i (add (read i) 1))
+  )
+
+  (printf "%d" (sub (mul (read s2) (read s2)) (read s1)))
+  (putchar '\n)
+
+  0
+)

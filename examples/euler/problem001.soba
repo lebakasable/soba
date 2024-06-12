@@ -1,0 +1,19 @@
+fn extern variadic printf fmt: u64 > u64.
+fn extern putchar c: u64 > u64.
+
+fn extern main > u64 (
+  let s3 (array 0)
+  let s5 (array 0)
+  let s15 (array 0)
+
+  for i 1000 do (
+    or (eq (rem i 3) 0) (write s3 (add i (read s3)))
+    or (eq (rem i 5) 0) (write s5 (add i (read s5)))
+    or (eq (rem i 15) 0) (write s15 (add i (read s15)))
+  )
+
+  (printf "%d" (sub (add (read s3) (read s5)) (read s15)))
+  (putchar '\n)
+  
+  0
+)

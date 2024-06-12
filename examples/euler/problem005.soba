@@ -1,0 +1,33 @@
+fn extern variadic printf fmt: u64 > u64.
+fn extern putchar c: u64 > u64.
+
+fn gcd a: u64 b: u64 > u64 (
+  let a (array a)
+  let b (array b)
+  let temp (array 0)
+  while (read b) do (
+    (write temp (rem (read a) (read b)))
+    (write a (read b))
+    (write b (read temp))
+  )
+  (read a)
+)
+
+fn lcm a: u64 b: u64 > u64 (
+  (div (mul a b) (gcd a b))
+)
+
+fn extern main > u64 (
+  let ans (array 1)
+
+  let i (array 1)
+  while (lt (read i) 21) do (
+    (write ans (lcm (read ans) (read i)))
+    (write i (add (read i) 1))
+  )
+
+  (printf "%d" (read ans))
+  (putchar '\n)
+
+  0
+)
