@@ -292,20 +292,17 @@ fn remove_variable vars: u64 > u64 (
   (free (read (add vars (mul 8 (read count)))))
 )
 
-fn error_unknown_variable name: (u64 u64) line_number: u64 > u64 (
-  (printf "%zu: unknown variable: %.*s" line_number .1 name .0 name)
-  (putchar '\n)
-  (die)
-)
-
 fn look_up_variable vars: u64 name: (u64 u64) line_number: u64 > u64 (
   let count (read (add vars (mul 16 MAX_VARIABLES)))
   let res (array 0)
   for i count
     and (token_eq_str name (read (add vars (mul 8 i))))
         (write res (read (add vars (mul 8 (add MAX_VARIABLES i)))))
-  or (read res)
-     (error_unknown_variable name line_number)
+  or (read res) do (
+    (printf "%zu: unknown variable: %.*s" line_number .1 name .0 name)
+    (putchar '\n)
+    (die)
+  )
 )
 
 fn add_function fns: u64 name: u64 type: u64 ref: u64 > u64 (
