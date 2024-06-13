@@ -22,7 +22,7 @@ fn extern main > u64 (
   let i (array 1)
   while (lt (read i) 21) do (
     (write ans (lcm (read ans) (read i)))
-    (write i (add (read i) 1))
+    (inc i)
   )
 
   (printf "%d" (read ans))

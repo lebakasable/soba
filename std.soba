@@ -30,6 +30,10 @@ fn le a: u64 b: u64 > u64 (
   (not (lt b a))
 )
 
+fn gt a: u64 b: u64 > u64 (
+  (not (le a b))
+)
+
 fn ge a: u64 b: u64 > u64 (
   (not (lt a b))
 )

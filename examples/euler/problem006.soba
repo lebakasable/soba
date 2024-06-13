@@ -8,7 +8,7 @@ fn extern main > u64 (
   while (lt (read i) 101) do (
     (write s1 (add (read s1) (mul (read i) (read i))))
     (write s2 (add (read s2) (read i)))
-    (write i (add (read i) 1))
+    (inc i)
   )
 
   (printf "%d" (sub (mul (read s2) (read s2)) (read s1)))
