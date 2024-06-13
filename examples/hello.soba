@@ -1,0 +1,8 @@
+include std
+
+fn extern main > u64 (
+  (printf "Hello, World!")
+  (putchar '\n)
+
+  0
+)
