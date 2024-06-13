@@ -1,20 +1,4 @@
-fn extern dup2 oldfd: u64 newfd: u64 > u64.
-fn extern exit status: u64 > u64.
-fn extern fclose stream: u64 > u64.
-fn extern feof stream: u64 > u64.
-fn extern fopen path: u64 modes: u64 > u64.
-fn extern free ptr: u64 > u64.
-fn extern getline lineptr: u64 n: u64 stream: u64 > u64.
-fn extern malloc size: u64 > u64.
-fn extern memchr ptr: u64 byte: u64 len: u64 > u64.
-fn extern memcmp a: u64 b: u64 len: u64 > u64.
-fn extern memset ptr: u64 byte: u64 len: u64 > u64.
-fn extern perror message: u64 > u64.
-fn extern variadic printf fmt: u64 > u64.
-fn extern putchar c: u64 > u64.
-fn extern puts s: u64 > u64.
-fn extern strcmp a: u64 b: u64 > u64.
-fn extern strlen s: u64 > u64.
+include std
 
 fn extern LLVMAddFunction module: u64 name: u64 function_type: u64 > u64.
 fn extern LLVMAddIncoming phi: u64 incoming_values: u64 incoming_blocks: u64 count: u64 > u64.
@@ -69,81 +53,6 @@ fn extern LLVMWriteBitcodeToFile module: u64 path: u64 > u64.
 const MAX_PARAMS 8
 const MAX_VARIABLES 32
 const MAX_FUNCTIONS 192
-
-fn not b: u64 > u64 (
-  (eq b 0)
-)
-
-fn ne a: u64 b: u64 > u64 (
-  (not (eq a b))
-)
-
-fn le a: u64 b: u64 > u64 (
-  (not (lt b a))
-)
-
-fn ge a: u64 b: u64 > u64 (
-  (not (lt a b))
-)
-
-fn inc n: u64 > u64 (
-  (write n (add (read n) 1))
-)
-
-fn dec n: u64 > u64 (
-  (write n (sub (read n) 1))
-)
-
-fn die > u64 (
-  (exit 1)
-)
-
-fn assert condition: u64 message: u64 > u64 (
-  or condition do (
-    (puts message)
-    (die)
-  )
-)
-
-fn assert_errno condition: u64 message: u64 > u64 (
-  or condition do (
-    (perror message)
-    (die)
-  )
-)
-
-fn memdupz ptr: u64 len: u64 > u64 (
-  let res (malloc (add len 1))
-  (assert res "out of memory")
-  (memcpy res ptr len)
-  (write8 (add res len) 0)
-  res
-)
-
-fn streq a: u64 b: u64 > u64 (
-  (not (strcmp a b))
-)
-
-fn is_whitespace c: u64 > u64 (
-  or (eq c ' ) or (eq c '\t) (eq c '\n)
-)
-
-fn is_digit c: u64 > u64 (
-  and (ge c '0) (le c '9)
-)
-
-fn is_alphabetic c: u64 > u64 (
-  or and (ge c 'a) (le c 'z)
-     and (ge c 'A) (le c 'Z)
-)
-
-fn is_identifier_part c: u64 > u64 (
-  or (is_alphabetic c) or (is_digit c) (eq c '_)
-)
-
-fn is_single_character_token c: u64 > u64 (
-  or (eq c '() or (eq c ')) or (eq c '.) or (eq c ':) (eq c '>)
-)
 
 fn current_line_number l: u64 > u64 (
   (read (add 40 l))
@@ -947,6 +856,31 @@ fn parse_constant l: u64 vars: u64 > u64 (
   (add_variable vars name (LLVMConstInt (LLVMInt64Type) value 0))
 )
 
+fn parse_top_level_item l: u64 module: u64 vars: u64 fns: u64 > u64.
+
+fn parse_include l: u64 module: u64 vars: u64 fns: u64 > u64 (
+  let file_name (next_token l)
+  or (token_is_identifier file_name) do (
+    (printf "%d: expected identifier after `include`" (current_line_number l))
+    (putchar '\n)
+    (die)
+  )
+  let file_name (tokdupz file_name)
+
+  let file_path (alloca (add (strlen file_name) 6))
+  (strcpy file_path file_name)
+  (strcat file_path ".soba")
+
+  let file (fopen file_path "r")
+  defer (assert_errno (not (fclose file)) "failed to read source code")
+  (assert_errno file "failed to read source code")
+
+  let lexer (array 0 0 0 file 0 0)
+  defer (free (read (add 32 lexer)))
+
+  while (parse_top_level_item lexer module vars fns) 0
+)
+
 fn parse_top_level_item l: u64 module: u64 vars: u64 fns: u64 > u64 (
   let token (next_token l)
   and .0 token do (
@@ -954,6 +888,8 @@ fn parse_top_level_item l: u64 module: u64 vars: u64 fns: u64 > u64 (
       (parse_function l module vars fns)
     if (token_eq_str token "const")
       (parse_constant l vars)
+    if (token_eq_str token "include")
+      (parse_include l module vars fns)
     do (
       (printf "%d: unexpected top-level item `%s`" (current_line_number l) (tokdupz token))
       (putchar '\n)

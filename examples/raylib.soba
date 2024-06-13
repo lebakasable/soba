@@ -1,4 +1,5 @@
-fn extern variadic printf fmt: u64 > u64.
+include std
+
 fn extern InitWindow width: u64 height: u64 title: u64 > u64.
 fn extern CloseWindow > u64.
 fn extern WindowShouldClose > bool.
