@@ -40,7 +40,6 @@ fn extern LLVMGetFirstBasicBlock function: u64 > u64.
 fn extern LLVMGetInsertBlock builder: u64 > u64.
 fn extern LLVMGetParam function: u64 index: u64 > u64.
 fn extern LLVMGetUndef type: u64 > u64.
-fn extern LLVMInt1Type > u64.
 fn extern LLVMInt64Type > u64.
 fn extern LLVMInt8Type > u64.
 fn extern LLVMIsFunctionVarArg function_type: u64 > u64.
@@ -240,10 +239,10 @@ fn add_include incs: u64 path: u64 > u64 (
 
 fn is_included incs: u64 path: u64 > u64 (
   let count (read (add incs (mul 8 MAX_INCLUDES)))
-  let res (array 0)
+  let res (array false)
   for i count
     and (streq path (read (add incs (mul 8 i))))
-        (write res 1)
+        (write res true)
   (read res)
 )
 
@@ -267,7 +266,7 @@ fn parse_type_or_rparen l: u64 > u64.
 fn parse_tuple_type l: u64 > u64 (
   let args (alloca MAX_PARAMS)
   let arg_count (array 0)
-  let done (array 0)
+  let done (array false)
   while (not (read done))
     let arg (parse_type_or_rparen l)
     if arg do (
@@ -275,7 +274,7 @@ fn parse_tuple_type l: u64 > u64 (
               "too many elements in tuple type")
       (write (add args (mul 8 (read arg_count))) arg)
       (incp arg_count)
-    ) (write done 1)
+    ) (write done true)
 
   (LLVMStructType args (read arg_count) 0)
 )
@@ -286,11 +285,9 @@ fn parse_type_or_rparen l: u64 > u64 (
     0
   if (token_eq_str token "u64")
     (LLVMInt64Type)
-  if (token_eq_str token "bool")
-    (LLVMInt1Type)
   if (token_is token '()
     (parse_tuple_type l)
-  (assert 0 "expected a type or `)`")
+  (assert false "expected a type or `)`")
 )
 
 fn parse_type l: u64 > u64 (
@@ -336,12 +333,12 @@ fn parse_if l: u64 builder: u64 vars: u64 fns: u64 > u64 (
 
 fn parse_block l: u64 builder: u64 vars: u64 fns: u64 > u64 (
   let res (array 0)
-  let done (array 0)
+  let done (array false)
   while (not (read done))
     let step (parse_expression_or_rparen l builder vars fns 1)
     if step
       (write res step)
-      (write done 1)
+      (write done true)
   or (read res) (LLVMConstInt (LLVMInt64Type) 0 0)
 )
 
@@ -574,9 +571,9 @@ fn parse_expression_or_rparen l: u64 builder: u64 vars: u64 fns: u64 in_block: u
   if (token_eq_str token "defer")
     (parse_defer l builder vars fns in_block)
   if (token_eq_str token "true")
-    (LLVMConstInt (LLVMInt1Type) 1 0)
+    (LLVMConstInt (LLVMInt64Type) 1 0)
   if (token_eq_str token "false")
-    (LLVMConstInt (LLVMInt1Type) 0 0)
+    (LLVMConstInt (LLVMInt64Type) 0 0)
   if (token_eq_str token "read_as")
     (parse_read_as l builder vars fns)
   do (
@@ -741,14 +738,14 @@ fn parse_function_call l: u64 builder: u64 vars: u64 fns: u64 > u64 (
 
   let args (alloca MAX_PARAMS)
   let arg_count (array 0)
-  let done (array 0)
+  let done (array false)
   while (not (read done))
     let arg (parse_expression_or_rparen l builder vars fns 0)
     if arg do (
       (assert (lt (read arg_count) MAX_PARAMS) "too many arguments to function call")
       (write (add args (mul 8 (read arg_count))) arg)
       (incp arg_count)
-    ) (write done 1)
+    ) (write done true)
 
   (call_function builder fns name line_number args (read arg_count))
 )
@@ -780,12 +777,12 @@ fn parse_function l: u64 module: u64 vars: u64 fns: u64 > u64 (
   let param_count (array 0)
   let param_names (alloca MAX_PARAMS)
   let param_types (alloca MAX_PARAMS)
-  let is_declaration (array 0)
-  let done (array 0)
+  let is_declaration (array false)
+  let done (array false)
   while (not (read done)) do (
     let token (next_token l)
     if (token_is token '>)
-      (write done 1)
+      (write done true)
     do (
       or (token_is_identifier token) do (
         (printf "%d: expected parameter name or `>`" (current_line_number l))
@@ -817,7 +814,7 @@ fn parse_function l: u64 module: u64 vars: u64 fns: u64 > u64 (
 
   let token (next_token l)
   if (token_is token '.)
-    (write is_declaration 1)
+    (write is_declaration true)
   or (token_is token '() do (
     (printf "%d: expected function body or `.`" (current_line_number l))
     (putchar '\n)

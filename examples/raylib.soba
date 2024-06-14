@@ -2,7 +2,7 @@ include std
 
 fn extern InitWindow width: u64 height: u64 title: u64 > u64.
 fn extern CloseWindow > u64.
-fn extern WindowShouldClose > bool.
+fn extern WindowShouldClose > u64.
 fn extern BeginDrawing > u64.
 fn extern EndDrawing > u64.
 fn extern ClearBackground color: u64 > u64.
