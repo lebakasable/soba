@@ -1,9 +1,5 @@
 include noodle
 
-fn clang_compile input: u64 output: u64 > u64 (
-  (cmd (array "clang" "-o" output input "-lLLVM") 5)
-)
-
 fn extern main argc: u64 argv: u64 > u64 (
   let subcommand (read (add 8 argv))
 
@@ -11,9 +7,9 @@ fn extern main argc: u64 argv: u64 > u64 (
     (cmd (array "./build" "bootstrap") 2)
     (cmd (array "./build" "bootstrap") 2)
   ) if (streq subcommand "bootstrap") do (
-    (clang_compile "bootstrap.bc" "bootstrap")
+    (cmd (array "clang" "-o" "bootstrap" "bootstrap.bc" "-lLLVM") 5)
     (cmd (array "./bootstrap" "compiler.soba" "compiler.bc") 3)
-    (clang_compile "compiler.bc" "compiler")
+    (cmd (array "clang" "-o" "compiler" "compiler.bc" "-lLLVM") 5)
     (cmd (array "./compiler" "compiler.soba" "stage2.bc") 3)
     (cmd (array "opt" "-Oz" "-o" "bootstrap.bc" "stage2.bc") 5)
   ) if (streq subcommand "test") do (
