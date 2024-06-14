@@ -1,3 +1,0 @@
-#!/bin/sh
-make stage2.bc
-opt -Oz -o bootstrap.bc stage2.bc
