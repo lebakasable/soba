@@ -904,7 +904,11 @@ fn parse_include l: u64 module: u64 vars: u64 fns: u64 incs: u64 > u64 (
     (add_include incs file_name)
 
     let file_path if (streq file_name "std") do (
-      "src/std.soba"
+      let lib_path or (getenv "SOBA_LIB_PATH") "lib"
+      let file_path (alloca (add (add (strlen lib_path) (strlen file_name)) 1))
+      (strcpy file_path lib_path)
+      (strcat file_path "/std.soba")
+      file_path
     ) do (
       let file_path (alloca (add (strlen file_name) 6))
       (strcpy file_path file_name)

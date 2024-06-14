@@ -37,6 +37,7 @@ fn extern closedir dirp: u64 > u64.
 fn extern __errno_location > u64.
 fn extern kill pid: u64 sig: u64 > u64.
 fn extern getpid > u64.
+fn extern getenv name: u64 > u64.
 
 fn errno > u64 (
   (read (__errno_location))
