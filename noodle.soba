@@ -1,0 +1,137 @@
+include std
+
+const PATH_SEP 47
+
+fn join strs: u64 strs_count: u64 sep: u64 > u64 (
+  let sep_len (strlen sep)
+
+  let len (array 0)
+
+  for i strs_count (addp len (strlen (read (add strs (mul 8 i)))))
+
+  let result_len (add (add (read len) (mul (sub strs_count 1) sep_len)) 1)
+  let result (malloc result_len)
+
+  (write len 0)
+  for i strs_count do (
+    and (gt i 0) do (
+      (memcpy (add result (read len)) sep sep_len)
+      (addp len sep_len)
+    )
+
+    let str (read (add strs (mul 8 i)))
+    let str_len (strlen str)
+    (memcpy (add result (read len)) str str_len)
+    (addp len str_len)
+  )
+  (write8 (add result (read len)) 0)
+
+  result
+)
+
+fn concat strs: u64 strs_count: u64 > u64 (
+  (join strs strs_count "")
+)
+
+fn path paths: u64 paths_count: u64 > u64 (
+  (join paths paths_count (array PATH_SEP))
+)
+
+fn mkdirs paths: u64 paths_count: u64 > u64 (
+  let len (array 0)
+
+  for i paths_count (addp len (strlen (read (add paths (mul 8 i)))))
+
+  let seps_count (array (sub paths_count 1))
+  let sep (array PATH_SEP)
+  let sep_len (strlen sep)
+
+  let result (malloc (add (add (read len) (mul (read seps_count) sep_len)) 1))
+
+  (write len 0)
+  for i paths_count do (
+    let path (read (add paths (mul 8 i)))
+    let path_len (strlen path)
+    (memcpy (add result (read len)) path path_len)
+    (addp len path_len)
+
+    and (gt (read seps_count) 0) do (
+      (memcpy (add result (read len)) sep sep_len)
+      (addp len sep_len)
+      (decp seps_count)
+    )
+
+    (write8 (add result (read len)) 0)
+
+    (printf "[INFO] mkdir %s%c" result '\n)
+    and (ne (mkdir result 493) 0) do (
+      if (eq (errno) EEXIST) do (
+        (write (__errno_location) 0)
+        (dprintf stderr "[WARN] directory `%s` already exists%c" result '\n)
+      ) do (
+        (dprintf stderr "[ERROR] could not create directory `%s`: %s%c" result (strerror (errno)) '\n)
+        (die)
+      )
+    )
+  )
+)
+
+fn cmd args: u64 args_count: u64 > u64 (
+  let cmd (join args args_count " ")
+  defer (free cmd)
+
+  (printf "[CMD] %s%c" cmd '\n)
+
+  let cpid (fork)
+  if (eq cpid (sub 0 1)) do (
+    (dprintf stderr "[ERROR] could not fork a child process: %s%c" (strerror (errno)) '\n)
+    (die)
+  ) if (eq cpid 0) do (
+    let cmd (malloc (mul 8 (add args_count 1)))
+    defer (free cmd)
+
+    for i args_count do (
+      let arg (read (add args (mul 8 i)))
+      (write (add cmd (mul 8 i)) arg)
+    )
+    (write (add cmd (mul 8 args_count)) 0)
+
+    and (ne (execvp (read args) cmd) 0) do (
+      (dprintf stderr "[ERROR] could not execute child process: %s%c" (strerror (errno)) '\n)
+      (die)
+    )
+  ) do (
+    (wait 0)
+  )
+)
+
+fn files_in_dir path: u64 > (u64 u64) (
+  let dir (opendir path)
+  defer (closedir dir)
+
+  let files_count (array 0)
+
+  let dp (array (readdir dir))
+  while (read dp) do (
+    defer (write dp (readdir dir))
+    (incp files_count)
+  )
+
+  let files (malloc (mul 8 (read files_count)))
+
+  (rewinddir dir)
+
+  let files_count (array 0)
+  let dp (array (readdir dir))
+  while (read dp) do (
+    defer (write dp (readdir dir))
+
+    let subpath (add 19 (read dp))
+    or or (streq subpath ".") (streq subpath "..") do (
+      (write (add files (mul 8 (read files_count))) (strdup subpath))
+      (incp files_count)
+    )
+  )
+
+  (tuple files (read files_count))
+)

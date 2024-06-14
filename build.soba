@@ -1,0 +1,30 @@
+include noodle
+
+fn extern main argc: u64 argv: u64 > u64 (
+  and (lt argc 2) do (
+    (dprintf stderr "[ERROR] no subcommand provided")
+    (die)
+  )
+  let subcommand (read (add 8 argv))
+
+  if (streq subcommand "test") do (
+    let files (files_in_dir "examples")
+    defer (free .0 files)
+
+    for i .1 files do (
+      let file (read (add .0 files (mul 8 i)))
+      and (ends_with file ".soba") do (
+        let soba_path (path (array "examples" file) 2)
+        let no_ext (substr soba_path 0 (sub (strlen soba_path) 5))
+        let bc_path (concat (array no_ext ".bc") 2)
+        (cmd (array "./compiler" soba_path bc_path) 3)
+        (cmd (array "clang" "-lraylib" "-o" no_ext bc_path) 5)
+      ) 
+    )
+  ) do (
+    (dprintf stderr "[ERROR] unknown subcommand `%s`%c" subcommand '\n)
+    (die)
+  )
+
+  0
+)
