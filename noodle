@@ -1,4 +1,4 @@
-#!/usr/bin/env -S sh -c './soba noodle build/noodle.bc && clang -o build/noodle build/noodle.bc && ./build/noodle $@'
+#!/usr/bin/env -S sh -c 'mkdir -p build && ./soba noodle build/noodle.bc && clang -o build/noodle build/noodle.bc && ./build/noodle $@'
 
 include noodle
 
@@ -44,14 +44,11 @@ fn extern main argc: u64 argv: u64 > u64 (
   let subcommand (read (add 8 argv))
 
   if (not subcommand) do (
-    (mkdirs (array "build") 1)
     (bootstrap)
     (test)
   ) if (streq subcommand "bootstrap") do (
-    (mkdirs (array "build") 1)
     (bootstrap)
   ) if (streq subcommand "test") do (
-    (mkdirs (array "build") 1)
     (test)
   ) if (streq subcommand "help") do (
     (printf "Usage: ./noodle [SUBCOMMAND]%c" '\n)
