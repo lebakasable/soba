@@ -55,8 +55,9 @@ fn extern LLVMVerifyModule module: u64 action: u64 out_message: u64 > u64.
 fn extern LLVMWriteBitcodeToFile module: u64 path: u64 > u64.
 
 const MAX_PARAMS 8
-const MAX_VARIABLES 32
+const MAX_VARIABLES 192
 const MAX_FUNCTIONS 192
+const MAX_INCLUDES 32
 
 fn current_line_number l: u64 > u64 (
   (read (add 40 l))
@@ -228,6 +229,22 @@ fn add_function fns: u64 name: u64 type: u64 ref: u64 > u64 (
   (write (add types (mul 8 (read count))) type)
   (write (add refs (mul 8 (read count))) ref)
   (incp count)
+)
+
+fn add_include incs: u64 path: u64 > u64 (
+  let count (add incs (mul 8 MAX_INCLUDES))
+  (assert (lt (read count) MAX_INCLUDES) "too many includes")
+  (write (add incs (mul 8 (read count))) path)
+  (incp count)
+)
+
+fn is_included incs: u64 path: u64 > u64 (
+  let count (read (add incs (mul 8 MAX_INCLUDES)))
+  let res (array 0)
+  for i count
+    and (streq path (read (add incs (mul 8 i))))
+        (write res 1)
+  (read res)
 )
 
 fn look_up_function fns: u64 name: u64 > u64 (
@@ -872,9 +889,9 @@ fn parse_constant l: u64 vars: u64 > u64 (
   (add_variable vars name (LLVMConstInt (LLVMInt64Type) value 0))
 )
 
-fn parse_top_level_item l: u64 module: u64 vars: u64 fns: u64 > u64.
+fn parse_top_level_item l: u64 module: u64 vars: u64 fns: u64 incs: u64 > u64.
 
-fn parse_include l: u64 module: u64 vars: u64 fns: u64 > u64 (
+fn parse_include l: u64 module: u64 vars: u64 fns: u64 incs: u64 > u64 (
   let file_name (next_token l)
   or (token_is_identifier file_name) do (
     (printf "%d: expected identifier after `include`" (current_line_number l))
@@ -883,21 +900,30 @@ fn parse_include l: u64 module: u64 vars: u64 fns: u64 > u64 (
   )
   let file_name (tokdupz file_name)
 
-  let file_path (alloca (add (strlen file_name) 6))
-  (strcpy file_path file_name)
-  (strcat file_path ".soba")
+  or (is_included incs file_name) do (
+    (add_include incs file_name)
 
-  let file (fopen file_path "r")
-  defer (assert_errno (not (fclose file)) "failed to read source code")
-  (assert_errno file "failed to read source code")
+    let file_path if (streq file_name "std") do (
+      "src/std.soba"
+    ) do (
+      let file_path (alloca (add (strlen file_name) 6))
+      (strcpy file_path file_name)
+      (strcat file_path ".soba")
+      file_path
+    )
 
-  let lexer (array 0 0 0 file 0 0)
-  defer (free (read (add 32 lexer)))
+    let file (fopen file_path "r")
+    defer (assert_errno (not (fclose file)) "failed to read source code")
+    (assert_errno file "failed to read source code")
 
-  while (parse_top_level_item lexer module vars fns) 0
+    let lexer (array 0 0 0 file 0 0)
+    defer (free (read (add 32 lexer)))
+
+    while (parse_top_level_item lexer module vars fns incs) 0
+  )
 )
 
-fn parse_top_level_item l: u64 module: u64 vars: u64 fns: u64 > u64 (
+fn parse_top_level_item l: u64 module: u64 vars: u64 fns: u64 incs: u64 > u64 (
   let token (next_token l)
   and .0 token do (
     if (token_eq_str token "fn")
@@ -905,7 +931,7 @@ fn parse_top_level_item l: u64 module: u64 vars: u64 fns: u64 > u64 (
     if (token_eq_str token "const")
       (parse_constant l vars)
     if (token_eq_str token "include")
-      (parse_include l module vars fns)
+      (parse_include l module vars fns incs)
     do (
       (printf "%d: unexpected top-level item `%s`" (current_line_number l) (tokdupz token))
       (putchar '\n)
@@ -930,7 +956,11 @@ fn parse l: u64 output_path: u64 > u64 (
   defer (clear_functions fns)
   (memset fns 0 (mul 8 size_of_fns))
 
-  while (parse_top_level_item l module vars fns) 0
+  let size_of_incs (add 1 MAX_INCLUDES)
+  let incs (alloca size_of_incs)
+  (memset incs 0 (mul 8 size_of_incs))
+
+  while (parse_top_level_item l module vars fns incs) 0
 
   (LLVMVerifyModule module 0 0)
   (LLVMWriteBitcodeToFile module output_path)

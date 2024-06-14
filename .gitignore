@@ -1,11 +1,3 @@
-*.bc
-!bootstrap.bc
-bootstrap
-compiler
-noodle
-stage*
-examples/*
-!examples/*.soba
-!examples/euler
-examples/euler/*
-!examples/euler/*.soba
+/build/
+/noodle
+/soba

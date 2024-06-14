@@ -1,34 +1,58 @@
+#!/usr/bin/env -S sh -c './soba build.soba build/noodle.bc && clang -o noodle build/noodle.bc && ./noodle'
+
 include noodle
+
+fn bootstrap > u64 (
+  (cmd (array "clang" "-o" "build/bootstrap" "bootstrap.bc" "-lLLVM") 5)
+  (cmd (array "./build/bootstrap" "src/compiler.soba" "build/compiler.bc") 3)
+  (cmd (array "clang" "-o" "soba" "build/compiler.bc" "-lLLVM") 5)
+  (cmd (array "./soba" "src/compiler.soba" "build/stage2.bc") 3)
+  (cmd (array "opt" "-Oz" "-o" "bootstrap.bc" "build/stage2.bc") 5)
+)
+
+fn compile_all_in dir: u64 > u64 (
+  let files (files_in_dir dir)
+  defer (free .0 files)
+
+  for i .1 files do (
+    let file (read (add .0 files (mul 8 i)))
+    defer (free file)
+
+    and (ends_with file ".soba") do (
+      let soba_path (path (array dir file) 2)
+      defer (free soba_path)
+      let no_ext (substr file 0 (sub (strlen file) 5))
+      defer (free no_ext)
+      let no_ext (path (array "build" no_ext) 2)
+      defer (free no_ext)
+      let bc_path (concat (array no_ext ".bc") 2)
+      defer (free bc_path)
+
+      (cmd (array "./soba" soba_path bc_path) 3)
+      (cmd (array "clang" "-lraylib" "-o" no_ext bc_path) 5)
+    ) 
+  )
+)
+
+fn test > u64 (
+  (bootstrap)
+  (cmd (array "diff" "build/compiler.bc" "build/stage2.bc") 3)
+  (compile_all_in "examples")
+  (compile_all_in "examples/euler")
+)
 
 fn extern main argc: u64 argv: u64 > u64 (
   let subcommand (read (add 8 argv))
 
+  (mkdirs (array "build") 1)
+
   if (not subcommand) do (
-    (cmd (array "./noodle" "bootstrap") 2)
-    (cmd (array "./noodle" "test") 2)
+    (bootstrap)
+    (test)
   ) if (streq subcommand "bootstrap") do (
-    (cmd (array "clang" "-o" "bootstrap" "bootstrap.bc" "-lLLVM") 5)
-    (cmd (array "./bootstrap" "compiler.soba" "compiler.bc") 3)
-    (cmd (array "clang" "-o" "compiler" "compiler.bc" "-lLLVM") 5)
-    (cmd (array "./compiler" "compiler.soba" "stage2.bc") 3)
-    (cmd (array "opt" "-Oz" "-o" "bootstrap.bc" "stage2.bc") 5)
+    (bootstrap)
   ) if (streq subcommand "test") do (
-    (cmd (array "./noodle" "bootstrap") 2)
-    (cmd (array "diff" "compiler.bc" "stage2.bc") 3)
-
-    let files (files_in_dir "examples")
-    defer (free .0 files)
-
-    for i .1 files do (
-      let file (read (add .0 files (mul 8 i)))
-      and (ends_with file ".soba") do (
-        let soba_path (path (array "examples" file) 2)
-        let no_ext (substr soba_path 0 (sub (strlen soba_path) 5))
-        let bc_path (concat (array no_ext ".bc") 2)
-        (cmd (array "./compiler" soba_path bc_path) 3)
-        (cmd (array "clang" "-lraylib" "-o" no_ext bc_path) 5)
-      ) 
-    )
+    (test)
   ) do (
     (dprintf stderr "[ERROR] unknown subcommand `%s`%c" subcommand '\n)
     (die)
