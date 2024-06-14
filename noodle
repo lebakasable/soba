@@ -35,7 +35,6 @@ fn compile_all_in dir: u64 > u64 (
 )
 
 fn test > u64 (
-  (bootstrap)
   (cmd (array "diff" "build/compiler.bc" "build/stage2.bc") 3)
   (compile_all_in "examples")
   (compile_all_in "examples/euler")
