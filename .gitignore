@@ -8,3 +8,4 @@ examples/*
 !examples/euler
 examples/euler/*
 !examples/euler/*.soba
+build

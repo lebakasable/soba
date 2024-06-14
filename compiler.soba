@@ -70,7 +70,7 @@ fn remove_comment l: u64 > u64 (
 )
 
 fn read_next_line l: u64 > u64 (
-  (inc (add 40 l))
+  (incp (add 40 l))
   (write (add 8 l) (getline (add 32 l) (add 16 l) (read (add 24 l))))
   (write l (read (add 32 l)))
   and (not (feof (read (add 24 l)))) do (
@@ -120,7 +120,7 @@ fn next_token_length l: u64 > u64 (
     )
     let i (array 1)
     while and (lt (read i) len) (is_identifier_part (read8 (add line (read i))))
-      (inc i)
+      (incp i)
     (read i)
   )
 )
@@ -186,7 +186,7 @@ fn add_variable vars: u64 name: u64 value: u64 > u64 (
   (assert (lt (read count) MAX_VARIABLES) "too many variables")
   (write (add vars (mul 8 (read count))) name)
   (write (add vars (mul 8 (add MAX_VARIABLES (read count)))) value)
-  (inc count)
+  (incp count)
 )
 
 fn clear_variables vars: u64 > u64 (
@@ -197,7 +197,7 @@ fn clear_variables vars: u64 > u64 (
 
 fn remove_variable vars: u64 > u64 (
   let count (add vars (mul 16 MAX_VARIABLES))
-  (dec count)
+  (decp count)
   (free (read (add vars (mul 8 (read count)))))
 )
 
@@ -223,7 +223,7 @@ fn add_function fns: u64 name: u64 type: u64 ref: u64 > u64 (
   (write (add names (mul 8 (read count))) name)
   (write (add types (mul 8 (read count))) type)
   (write (add refs (mul 8 (read count))) ref)
-  (inc count)
+  (incp count)
 )
 
 fn look_up_function fns: u64 name: u64 > u64 (
@@ -253,7 +253,7 @@ fn parse_tuple_type l: u64 > u64 (
       (assert (lt (read arg_count) MAX_PARAMS)
               "too many elements in tuple type")
       (write (add args (mul 8 (read arg_count))) arg)
-      (inc arg_count)
+      (incp arg_count)
     ) (write done 1)
 
   (LLVMStructType args (read arg_count) 0)
@@ -714,7 +714,7 @@ fn parse_function_call l: u64 builder: u64 vars: u64 fns: u64 > u64 (
     if arg do (
       (assert (lt (read arg_count) MAX_PARAMS) "too many arguments to function call")
       (write (add args (mul 8 (read arg_count))) arg)
-      (inc arg_count)
+      (incp arg_count)
     ) (write done 1)
 
   (call_function builder fns name line_number args (read arg_count))
@@ -776,7 +776,7 @@ fn parse_function l: u64 module: u64 vars: u64 fns: u64 > u64 (
 
       (write (add param_names (mul 8 (read param_count))) param_name)
       (write (add param_types (mul 8 (read param_count))) param_type)
-      (inc param_count)
+      (incp param_count)
     )
   )
 
@@ -929,7 +929,6 @@ fn extern main argc: u64 argv: u64 > u64 (
 
   (assert (ge argc 2) "no source file provided")
   (assert (ge argc 3) "no output file path provided")
-  (assert (eq argc 3) "too many command line arguments")
   let file_path (read (add 8 argv))
   let output_path (read (add 16 argv))
 

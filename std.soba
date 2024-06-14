@@ -1,6 +1,11 @@
+const stdout 0
+const stderr 1
+const EEXIST 17
+
 fn extern dup2 oldfd: u64 newfd: u64 > u64.
 fn extern exit status: u64 > u64.
 fn extern variadic printf fmt: u64 > u64.
+fn extern variadic dprintf fd: u64 fmt: u64 > u64.
 fn extern fclose stream: u64 > u64.
 fn extern feof stream: u64 > u64.
 fn extern fopen path: u64 modes: u64 > u64.
@@ -16,7 +21,23 @@ fn extern puts s: u64 > u64.
 fn extern strcmp a: u64 b: u64 > u64.
 fn extern strlen s: u64 > u64.
 fn extern strcpy dest: u64 src: u64 > u64.
+fn extern strncpy dest: u64 src: u64 count: u64 > u64.
 fn extern strcat dest: u64 src: u64 > u64.
+fn extern strdup str1: u64 > u64.
+fn extern strerror error: u64 > u64.
+fn extern mkdir pathname: u64 mode: u64 > u64.
+fn extern fork > u64.
+fn extern wait wstatus: u64 > u64.
+fn extern execvp path: u64 argv: u64 > u64.
+fn extern opendir dirname: u64 > u64.
+fn extern readdir dirp: u64 > u64.
+fn extern rewinddir dirp: u64 > u64.
+fn extern closedir dirp: u64 > u64.
+fn extern __errno_location > u64.
+
+fn errno > u64 (
+  (read (__errno_location))
+)
 
 fn not b: u64 > u64 (
   (eq b 0)
@@ -38,11 +59,31 @@ fn ge a: u64 b: u64 > u64 (
   (not (lt a b))
 )
 
+fn addp ptr: u64 off: u64 > u64 (
+  (write ptr (add (read ptr) off))
+)
+
+fn subp ptr: u64 off: u64 > u64 (
+  (write ptr (sub (read ptr) off))
+)
+
+fn mulp ptr: u64 off: u64 > u64 (
+  (write ptr (mul (read ptr) off))
+)
+
 fn inc n: u64 > u64 (
-  (write n (add (read n) 1))
+  (add n 1)
 )
 
 fn dec n: u64 > u64 (
+  (sub n 1)
+)
+
+fn incp n: u64 > u64 (
+  (write n (add (read n) 1))
+)
+
+fn decp n: u64 > u64 (
   (write n (sub (read n) 1))
 )
 
@@ -95,4 +136,13 @@ fn is_identifier_part c: u64 > u64 (
 
 fn is_single_character_token c: u64 > u64 (
   or (eq c '() or (eq c ')) or (eq c '.) or (eq c ':) (eq c '>)
+)
+
+fn ends_with str: u64 suffix: u64 > u64 (
+  (streq (add str (sub (strlen str) (strlen suffix))) suffix)
+)
+
+fn substr str: u64 start: u64 len: u64 > u64 (
+  let result (malloc len)
+  (strncpy result (add str start) len)
 )
