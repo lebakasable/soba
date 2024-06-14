@@ -1,4 +1,4 @@
-#!/usr/bin/env -S sh -c './soba build.soba build/noodle.bc && clang -o noodle build/noodle.bc && ./noodle'
+#!/usr/bin/env -S sh -c './soba noodle build/noodle.bc && clang -o build/noodle build/noodle.bc && ./build/noodle $@'
 
 include noodle
 
@@ -44,15 +44,22 @@ fn test > u64 (
 fn extern main argc: u64 argv: u64 > u64 (
   let subcommand (read (add 8 argv))
 
-  (mkdirs (array "build") 1)
-
   if (not subcommand) do (
+    (mkdirs (array "build") 1)
     (bootstrap)
     (test)
   ) if (streq subcommand "bootstrap") do (
+    (mkdirs (array "build") 1)
     (bootstrap)
   ) if (streq subcommand "test") do (
+    (mkdirs (array "build") 1)
     (test)
+  ) if (streq subcommand "help") do (
+    (printf "Usage: ./noodle [SUBCOMMAND]%c" '\n)
+    (printf "SUBCOMMANDS:%c" '\n)
+    (printf "  bootstrap    Bootstraps the compiler%c" '\n)
+    (printf "  test         Runs some tests%c" '\n)
+    (printf "  help         Prints this help message%c" '\n)
   ) do (
     (dprintf stderr "[ERROR] unknown subcommand `%s`%c" subcommand '\n)
     (die)
