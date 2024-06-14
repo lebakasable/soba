@@ -1,6 +1,7 @@
 const stdout 0
 const stderr 1
 const EEXIST 17
+const SIGTERM 15
 
 fn extern dup2 oldfd: u64 newfd: u64 > u64.
 fn extern exit status: u64 > u64.
@@ -34,6 +35,8 @@ fn extern readdir dirp: u64 > u64.
 fn extern rewinddir dirp: u64 > u64.
 fn extern closedir dirp: u64 > u64.
 fn extern __errno_location > u64.
+fn extern kill pid: u64 sig: u64 > u64.
+fn extern getpid > u64.
 
 fn errno > u64 (
   (read (__errno_location))

@@ -98,12 +98,15 @@ fn cmd args: u64 args_count: u64 > u64 (
 
     and (ne (execvp (read args) cmd) 0) do (
       (dprintf stderr "[ERROR] could not execute child process: %s%c" (strerror (errno)) '\n)
-      (die)
+      (kill cpid SIGTERM)
     )
   ) do (
     let status (array 0)
     (wait status)
-    and (ne (read status) 0) (die)
+    and (eq (and (read status) 127) 0) do (
+      let good_exit (shr (and (read status) 65280) 8)
+      or (not good_exit) (die)
+    )
   )
 )
 
