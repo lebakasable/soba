@@ -7,7 +7,7 @@ fn extern main > u64 (
   while (lt (read i) (read n)) do (
     while (eq (rem (read n) (read i)) 0)
       (write n (div (read n) (read i)))
-    (inc i)
+    (incp i)
   )
 
   (printf "%d" (read n))
