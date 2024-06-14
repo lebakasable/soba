@@ -1,0 +1,24 @@
+include std
+
+fn extern main > u64 (
+  let src "include std&&fn extern main > u64 (&  let src @?@&  let src (replace src 38 10)&  let src (replace src 64 34)&  let src_len (strlen src)&  for i src_len do (&    let ch (read8 (add src i))&    if (eq ch 63) do (&      for j src_len do (&        let ch (read8 (add src j))&        if (eq ch 10)&          (putchar 38)&        if (eq ch 34)&          (putchar 64)&        (printf @%c@ ch)&      )&    )&      (printf @%c@ ch)&  )&  0&)"
+  let src (replace src 38 10)
+  let src (replace src 64 34)
+  let src_len (strlen src)
+  for i src_len do (
+    let ch (read8 (add src i))
+    if (eq ch 63) do (
+      for j src_len do (
+        let ch (read8 (add src j))
+        if (eq ch 10)
+          (putchar 38)
+        if (eq ch 34)
+          (putchar 64)
+        (printf "%c" ch)
+      )
+    )
+      (printf "%c" ch)
+  )
+  0
+)
+

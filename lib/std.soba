@@ -2,6 +2,8 @@ const stdout 0
 const stderr 1
 const EEXIST 17
 const SIGTERM 15
+const SEEK_SET 0
+const SEEK_END 2
 
 fn extern dup2 oldfd: u64 newfd: u64 > u64.
 fn extern exit status: u64 > u64.
@@ -10,6 +12,9 @@ fn extern variadic dprintf fd: u64 fmt: u64 > u64.
 fn extern fclose stream: u64 > u64.
 fn extern feof stream: u64 > u64.
 fn extern fopen path: u64 modes: u64 > u64.
+fn extern fseek stream: u64 offset: u64 origin: u64 > u64.
+fn extern ftell stream: u64 > u64.
+fn extern fread buffer: u64 size: u64 count: u64 stream: u64 > u64.
 fn extern free ptr: u64 > u64.
 fn extern getline lineptr: u64 n: u64 stream: u64 > u64.
 fn extern malloc size: u64 > u64.
@@ -150,3 +155,36 @@ fn substr str: u64 start: u64 len: u64 > u64 (
   let result (malloc len)
   (strncpy result (add str start) len)
 )
+
+fn replace str: u64 rep: u64 with: u64 > u64 (
+  let str_len (add (strlen str) 1)
+  let result (malloc str_len)
+  for i str_len do (
+    let ch (read8 (add str i))
+    (write8 (add result i)
+            read_as u8 (array if (eq ch rep) with ch))
+  )
+  result
+)
+
+fn slurp_file path: u64 > u64 (
+  let file (fopen path "rb")
+
+  if file do (
+    defer (fclose file)
+
+    (fseek file 0 SEEK_END)
+    let size (ftell file)
+    (fseek file 0 SEEK_SET)
+
+    if (gt size 0) do (
+      let buffer (malloc (add size 1))
+      if buffer do (
+        (fread buffer 1 size file)
+        (write8 (add buffer size) 0)
+        buffer
+      ) 0
+    ) 0
+  ) 0
+)
+
