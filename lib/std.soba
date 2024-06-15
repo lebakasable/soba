@@ -43,6 +43,8 @@ fn extern __errno_location > u64.
 fn extern kill pid: u64 sig: u64 > u64.
 fn extern getpid > u64.
 fn extern getenv name: u64 > u64.
+fn extern time arg: u64 > u64.
+fn extern localtime time: u64 > u64.
 
 fn errno > u64 (
   (read (__errno_location))
@@ -161,8 +163,7 @@ fn replace str: u64 rep: u64 with: u64 > u64 (
   let result (malloc str_len)
   for i str_len do (
     let ch (read8 (add str i))
-    (write8 (add result i)
-            read_as u8 (array if (eq ch rep) with ch))
+    (write (add result i) if (eq ch rep) with ch)
   )
   result
 )

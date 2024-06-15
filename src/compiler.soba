@@ -29,6 +29,7 @@ fn extern LLVMBuildAnd builder: u64 lhs: u64 rhs: u64 name: u64 > u64.
 fn extern LLVMBuildShl builder: u64 lhs: u64 rhs: u64 name: u64 > u64.
 fn extern LLVMBuildAShr builder: u64 lhs: u64 rhs: u64 name: u64 > u64.
 fn extern LLVMBuildZExt builder: u64 value: u64 type: u64 name: u64 > u64.
+fn extern LLVMBuildSExt builder: u64 value: u64 type: u64 name: u64 > u64.
 fn extern LLVMConstInt type: u64 n: u64 is_signed: u64 > u64.
 fn extern LLVMConstStruct values: u64 count: u64 is_packed: u64 > u64.
 fn extern LLVMCountParamTypes function_type: u64 > u64.
@@ -53,10 +54,10 @@ fn extern LLVMTypeOf value: u64 > u64.
 fn extern LLVMVerifyModule module: u64 action: u64 out_message: u64 > u64.
 fn extern LLVMWriteBitcodeToFile module: u64 path: u64 > u64.
 
-const MAX_PARAMS 8
-const MAX_VARIABLES 192
-const MAX_FUNCTIONS 192
-const MAX_INCLUDES 32
+const MAX_PARAMS 1024
+const MAX_VARIABLES 1024
+const MAX_FUNCTIONS 1024
+const MAX_INCLUDES 1024
 
 fn current_line_number l: u64 > u64 (
   (read (add 40 l))
@@ -285,8 +286,6 @@ fn parse_type_or_rparen l: u64 > u64 (
     0
   if (token_eq_str token "u64")
     (LLVMInt64Type)
-  if (token_eq_str token "u8")
-    (LLVMInt8Type)
   if (token_is token '()
     (parse_tuple_type l)
   (assert false "expected a type or `)`")
