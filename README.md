@@ -54,3 +54,10 @@ Hello, World!
 > The Soba standard library depends on [libc](https://en.wikipedia.org/wiki/C_standard_library) (at least for now), so if you wan't to generate static executables, you can but without including the "std.soba" file, located in `$SOBA_LIB_PATH` or in `./lib`.
 
 Check the [examples folder](./examples) and the [compiler itself](./src/compiler.soba) to learn more about how to use the language. 
+
+### Editor Support
+
+Currently supported:
+  - [Vis](https://github.com/martanne/vis)
+
+See the [./editors](editors) folder.
