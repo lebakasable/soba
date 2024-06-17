@@ -1,58 +1,5 @@
 include std
-
-fn extern LLVMAddFunction module: u64 name: u64 function_type: u64 > u64.
-fn extern LLVMAddIncoming phi: u64 incoming_values: u64 incoming_blocks: u64 count: u64 > u64.
-fn extern LLVMAppendBasicBlock function: u64 name: u64 > u64.
-fn extern LLVMBuildAdd builder: u64 lhs: u64 rhs: u64 name: u64 > u64.
-fn extern LLVMBuildArrayAlloca builder: u64 type: u64 count: u64 name: u64 > u64.
-fn extern LLVMBuildBr builder: u64 block: u64 > u64.
-fn extern LLVMBuildCall2 builder: u64 type: u64 function: u64 args: u64 arg_count: u64 name: u64 > u64.
-fn extern LLVMBuildCondBr builder: u64 condition: u64 then: u64 else: u64 > u64.
-fn extern LLVMBuildExtractValue builder: u64 aggregate: u64 index: u64 name: u64 > u64.
-fn extern LLVMBuildGlobalString builder: u64 str: u64 name: u64 > u64.
-fn extern LLVMBuildICmp builder: u64 comparison: u64 lhs: u64 rhs: u64 name: u64 > u64.
-fn extern LLVMBuildInBoundsGEP2 builder: u64 type: u64 ptr: u64 indices: u64 index_count: u64 name: u64 > u64.
-fn extern LLVMBuildInsertValue builder: u64 aggregate: u64 value: u64 index: u64 name: u64 > u64.
-fn extern LLVMBuildIntToPtr builder: u64 value: u64 ptr_type: u64 name: u64 > u64.
-fn extern LLVMBuildLoad2 builder: u64 type: u64 ptr: u64 name: u64 > u64.
-fn extern LLVMBuildMemCpy builder: u64 dest: u64 dest_alignment: u64 src: u64 src_alignment: u64 size: u64 > u64.
-fn extern LLVMBuildMul builder: u64 lhs: u64 rhs: u64 name: u64 > u64.
-fn extern LLVMBuildPhi builder: u64 type: u64 name: u64 > u64.
-fn extern LLVMBuildPtrToInt builder: u64 ptr: u64 type: u64 name: u64 > u64.
-fn extern LLVMBuildRet builder: u64 value: u64 > u64.
-fn extern LLVMBuildStore builder: u64 value: u64 ptr: u64 > u64.
-fn extern LLVMBuildSub builder: u64 lhs: u64 rhs: u64 name: u64 > u64.
-fn extern LLVMBuildURem builder: u64 lhs: u64 rhs: u64 name: u64 > u64.
-fn extern LLVMBuildUDiv builder: u64 lhs: u64 rhs: u64 name: u64 > u64.
-fn extern LLVMBuildOr builder: u64 lhs: u64 rhs: u64 name: u64 > u64.
-fn extern LLVMBuildAnd builder: u64 lhs: u64 rhs: u64 name: u64 > u64.
-fn extern LLVMBuildShl builder: u64 lhs: u64 rhs: u64 name: u64 > u64.
-fn extern LLVMBuildAShr builder: u64 lhs: u64 rhs: u64 name: u64 > u64.
-fn extern LLVMBuildZExt builder: u64 value: u64 type: u64 name: u64 > u64.
-fn extern LLVMBuildSExt builder: u64 value: u64 type: u64 name: u64 > u64.
-fn extern LLVMConstInt type: u64 n: u64 is_signed: u64 > u64.
-fn extern LLVMConstStruct values: u64 count: u64 is_packed: u64 > u64.
-fn extern LLVMCountParamTypes function_type: u64 > u64.
-fn extern LLVMCreateBuilder > u64.
-fn extern LLVMDisposeModule module: u64 > u64.
-fn extern LLVMFunctionType return_type: u64 param_types: u64 param_count: u64 is_variadic: u64 > u64.
-fn extern LLVMGetBasicBlockParent block: u64 > u64.
-fn extern LLVMGetFirstBasicBlock function: u64 > u64.
-fn extern LLVMGetInsertBlock builder: u64 > u64.
-fn extern LLVMGetParam function: u64 index: u64 > u64.
-fn extern LLVMGetUndef type: u64 > u64.
-fn extern LLVMInt64Type > u64.
-fn extern LLVMInt8Type > u64.
-fn extern LLVMIsFunctionVarArg function_type: u64 > u64.
-fn extern LLVMModuleCreateWithName name: u64 > u64.
-fn extern LLVMPointerType pointee: u64 address_space: u64 > u64.
-fn extern LLVMPositionBuilderAtEnd builder: u64 block: u64 > u64.
-fn extern LLVMSetLinkage global: u64 linkage: u64 > u64.
-fn extern LLVMSetTarget module: u64 target: u64 > u64.
-fn extern LLVMStructType element_types: u64 element_count: u64 is_packed: u64 > u64.
-fn extern LLVMTypeOf value: u64 > u64.
-fn extern LLVMVerifyModule module: u64 action: u64 out_message: u64 > u64.
-fn extern LLVMWriteBitcodeToFile module: u64 path: u64 > u64.
+include llvm
 
 const MAX_PARAMS 1024
 const MAX_VARIABLES 1024
@@ -932,11 +879,13 @@ fn parse_include l: u64 module: u64 vars: u64 fns: u64 incs: u64 > u64 (
   or (is_included incs file_name) do (
     (add_include incs file_name)
 
-    let file_path if (streq file_name "std") do (
+    let file_path if or (streq file_name "std") (streq file_name "llvm") do (
       let lib_path or (getenv "SOBA_LIB_PATH") "lib"
-      let file_path (alloca (add (add (strlen lib_path) (strlen file_name)) 1))
+      let file_path (alloca (add (strlen lib_path) (add (strlen file_name) 7)))
       (strcpy file_path lib_path)
-      (strcat file_path "/std.soba")
+      (strcat file_path "/")
+      (strcat file_path file_name)
+      (strcat file_path ".soba")
       file_path
     ) do (
       let file_path (alloca (add (strlen file_name) 6))
