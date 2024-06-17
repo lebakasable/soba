@@ -1,6 +1,6 @@
 include std
 
-let PATH_SEP 47
+let PATH_SEP '/
 
 fn join strs: u64 strs_count: u64 sep: u64 > u64 (
   let sep_len (strlen sep)
