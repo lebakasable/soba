@@ -9,9 +9,11 @@ fn extern dup2 oldfd: u64 newfd: u64 > u64.
 fn extern exit status: u64 > u64.
 fn extern variadic printf fmt: u64 > u64.
 fn extern variadic dprintf fd: u64 fmt: u64 > u64.
+fn extern variadic fprintf file: u64 fmt: u64 > u64.
 fn extern fclose stream: u64 > u64.
 fn extern feof stream: u64 > u64.
 fn extern fopen path: u64 modes: u64 > u64.
+fn extern fwrite buffer: u64 blocSize: u64 blocCount: u64 stream: u64 > u64.
 fn extern fseek stream: u64 offset: u64 origin: u64 > u64.
 fn extern ftell stream: u64 > u64.
 fn extern fread buffer: u64 size: u64 count: u64 stream: u64 > u64.
@@ -45,6 +47,8 @@ fn extern getpid > u64.
 fn extern getenv name: u64 > u64.
 fn extern time arg: u64 > u64.
 fn extern localtime time: u64 > u64.
+fn extern srand seed: u64 > u64.
+fn extern rand > u64.
 
 fn errno > u64 (
   (read (__errno_location))
