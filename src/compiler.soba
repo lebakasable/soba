@@ -271,8 +271,11 @@ fn parse_tuple_type l: u64 > u64 (
   while (not (read done))
     let arg (parse_type_or_rparen l)
     if arg do (
-      (assert (lt (read arg_count) MAX_PARAMS)
-              "too many elements in tuple type")
+      or (lt (read arg_count) MAX_PARAMS) do (
+        (printf "%d: too many elements in tuple type" (current_line_number l))
+        (putchar '\n)
+        (die)
+      )
       (write (add args (mul 8 (read arg_count))) arg)
       (incp arg_count)
     ) (write done true)
@@ -288,12 +291,20 @@ fn parse_type_or_rparen l: u64 > u64 (
     (LLVMInt64Type)
   if (token_is token '()
     (parse_tuple_type l)
-  (assert false "expected a type or `)`")
+  do (
+    (printf "%d: expected a type or `)`" (current_line_number l))
+    (putchar '\n)
+    (die)
+  )
 )
 
 fn parse_type l: u64 > u64 (
   let type (parse_type_or_rparen l)
-  (assert type "expected a type, not `)`")
+  or type do (
+    (printf "%d: expected a type, not `)`" (current_line_number l))
+    (putchar '\n)
+    (die)
+  )
   type
 )
 
@@ -436,7 +447,11 @@ fn parse_or l: u64 builder: u64 vars: u64 fns: u64 > u64 (
 
 fn parse_for l: u64 builder: u64 vars: u64 fns: u64 > u64 (
   let token (next_token l)
-  (assert (token_is_identifier token) "expected a variable name after `for`")
+  or (token_is_identifier token) do (
+    (printf "%d: expected a variable name after `for`" (current_line_number l))
+    (putchar '\n)
+    (die)
+  )
   let var_name (tokdupz token)
 
   let this_block (LLVMGetInsertBlock builder)
@@ -517,7 +532,11 @@ fn parse_character_literal l: u64 token: (u64 u64) > u64 (
 
 fn parse_field_access l: u64 builder: u64 vars: u64 fns: u64 > u64 (
   let token (next_token l)
-  (assert (is_integer_literal token) "expected field index after `.`")
+  or (is_integer_literal token) do (
+    (printf "%d: expected field index after `.`" (current_line_number l))
+    (putchar '\n)
+    (die)
+  )
   let index (parse_integer_literal token)
 
   let aggregate (parse_expression l builder vars fns)
@@ -578,7 +597,11 @@ fn parse_expression_or_rparen l: u64 builder: u64 vars: u64 fns: u64 in_block: u
   if (token_eq_str token "read_as")
     (parse_read_as l builder vars fns)
   do (
-    (assert (token_is_identifier token) "expected an expression")
+    or (token_is_identifier token) do (
+      (printf "%d: expected an expression" (current_line_number l))
+      (putchar '\n)
+      (die)
+    )
     (look_up_variable vars token line_number)
   )
 )
@@ -733,7 +756,11 @@ fn call_function builder: u64 fns: u64 name: u64 line_number: u64 args: u64 arg_
 fn parse_function_call l: u64 builder: u64 vars: u64 fns: u64 > u64 (
   let function_name (next_token l)
   let line_number (current_line_number l)
-  (assert (token_is_identifier function_name) "expected a function name after `(`")
+  or (token_is_identifier function_name) do (
+    (printf "%d: expected a function name after `(`" (current_line_number l))
+    (putchar '\n)
+    (die)
+  )
   let name (tokdupz function_name)
   defer (free name)
 
@@ -743,7 +770,11 @@ fn parse_function_call l: u64 builder: u64 vars: u64 fns: u64 > u64 (
   while (not (read done))
     let arg (parse_expression_or_rparen l builder vars fns 0)
     if arg do (
-      (assert (lt (read arg_count) MAX_PARAMS) "too many arguments to function call")
+      or (lt (read arg_count) MAX_PARAMS) do (
+        (printf "%d: too many arguments to function call" (current_line_number l))
+        (putchar '\n)
+        (die)
+      )
       (write (add args (mul 8 (read arg_count))) arg)
       (incp arg_count)
     ) (write done true)
