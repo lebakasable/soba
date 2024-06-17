@@ -1,10 +1,10 @@
 include std
 include llvm
 
-const MAX_PARAMS 1024
-const MAX_VARIABLES 1024
-const MAX_FUNCTIONS 1024
-const MAX_INCLUDES 1024
+let MAX_PARAMS 1024
+let MAX_VARIABLES 1024
+let MAX_FUNCTIONS 1024
+let MAX_INCLUDES 1024
 
 fn current_line_number l: u64 > u64 (
   (read (add 40 l))
@@ -308,7 +308,7 @@ fn parse_expression_or_rest_of_block l: u64 builder: u64 vars: u64 fns: u64 in_b
     (parse_expression l builder vars fns)
 )
 
-fn parse_let l: u64 builder: u64 vars: u64 fns: u64 in_block: u64 > u64 (
+fn parse_let l: u64 builder: u64 vars: u64 fns: u64 in_block: u64 global: u64 > u64 (
   let var_name (next_token l)
   or (token_is_identifier var_name) do (
     (printf "%d: expected a variable name after `let`" (current_line_number l))
@@ -318,9 +318,11 @@ fn parse_let l: u64 builder: u64 vars: u64 fns: u64 in_block: u64 > u64 (
   let name (tokdupz var_name)
   let value (parse_expression l builder vars fns)
   (add_variable vars name value)
-  let res (parse_expression_or_rest_of_block l builder vars fns in_block)
-  (remove_variable vars)
-  res
+  or global do (
+    let res (parse_expression_or_rest_of_block l builder vars fns in_block)
+    (remove_variable vars)
+    res
+  )
 )
 
 fn parse_while l: u64 builder: u64 vars: u64 fns: u64 > u64 (
@@ -469,6 +471,8 @@ fn parse_character_literal l: u64 token: (u64 u64) > u64 (
     '\n
   if (eq byte 't)
     '\t
+  if (eq byte 'e)
+    '\e
   do (
     (printf "%d: invalid character escape sequence `%c`" (current_line_number l) byte)
     (putchar '\n)
@@ -526,7 +530,7 @@ fn parse_expression_or_rparen l: u64 builder: u64 vars: u64 fns: u64 in_block: u
       (die)
     )
   ) if (token_eq_str token "let")
-    (parse_let l builder vars fns in_block)
+    (parse_let l builder vars fns in_block false)
   if (token_eq_str token "while")
     (parse_while l builder vars fns)
   if (token_eq_str token "and")
@@ -543,6 +547,8 @@ fn parse_expression_or_rparen l: u64 builder: u64 vars: u64 fns: u64 in_block: u
     (LLVMConstInt (LLVMInt64Type) 0 0)
   if (token_eq_str token "read_as")
     (parse_read_as l builder vars fns)
+  if (token_eq_str token "here")
+    (LLVMConstInt (LLVMInt64Type) (current_line_number l) 0)
   do (
     or (token_is_identifier token) do (
       (printf "%d: expected an expression" (current_line_number l))
@@ -681,9 +687,9 @@ fn call_function builder: u64 fns: u64 name: u64 line_number: u64 args: u64 arg_
                        builder type array_ptr indices 1 "")
       (LLVMBuildStore builder element element_ptr)
     (LLVMBuildPtrToInt builder array_ptr i64 "")
-  ) if (streq name "tuple")
+  ) if (streq name "tuple") do (
     (make_tuple builder args arg_count)
-  do (
+  ) do (
     let i (look_up_function fns name)
     and (eq i 18446744073709551615) do (
       (printf "%zu: unknown function `%s`" line_number name)
@@ -845,26 +851,6 @@ fn parse_function l: u64 module: u64 vars: u64 fns: u64 > u64 (
   )
 )
 
-fn parse_constant l: u64 vars: u64 > u64 (
-  let name (next_token l)
-  or (token_is_identifier name) do (
-    (printf "%d: expected identifier after `const`" (current_line_number l))
-    (putchar '\n)
-    (die)
-  )
-  let name (tokdupz name)
-
-  let value (next_token l)
-  or (is_integer_literal value) do (
-    (printf "%d: constant value must be an integer literal" (current_line_number l))
-    (putchar '\n)
-    (die)
-  )
-  let value (parse_integer_literal value)
-
-  (add_variable vars name (LLVMConstInt (LLVMInt64Type) value 0))
-)
-
 fn parse_top_level_item l: u64 module: u64 vars: u64 fns: u64 incs: u64 > u64.
 
 fn parse_include l: u64 module: u64 vars: u64 fns: u64 incs: u64 > u64 (
@@ -910,8 +896,9 @@ fn parse_top_level_item l: u64 module: u64 vars: u64 fns: u64 incs: u64 > u64 (
   and .0 token do (
     if (token_eq_str token "fn")
       (parse_function l module vars fns)
-    if (token_eq_str token "const")
-      (parse_constant l vars)
+    if (token_eq_str token "let")
+      let builder (LLVMCreateBuilder)
+      (parse_let l builder vars fns false true)
     if (token_eq_str token "include")
       (parse_include l module vars fns incs)
     do (

@@ -1,8 +1,8 @@
 include std
 
-const WIDTH 512
-const HEIGHT 512
-const PIXEL_SIZE 8
+let WIDTH 512
+let HEIGHT 512
+let PIXEL_SIZE 8
 
 fn generate_pixels cols: u64 rows: u64 > u64 (
   (srand (time 0))

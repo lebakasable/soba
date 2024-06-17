@@ -8,8 +8,7 @@ local lex = lexer.new(...)
 lex:add_rule('keyword', lex:tag(lexer.KEYWORD, lex:word_match(lexer.KEYWORD)))
 
 -- Constants.
-local const_def = lex:tag(lexer.KEYWORD, P'const') * lexer.space^1 * lex:tag(lexer.CONSTANT, lexer.word)
-lex:add_rule('constant', const_def + P'true' + P'false')
+lex:add_rule('constant', P'true' + P'false')
 
 -- Types.
 lex:add_rule('type', lex:tag(lexer.TYPE, lex:word_match(lexer.TYPE)))
@@ -44,7 +43,7 @@ lex:add_fold_point(lexer.COMMENT, '#')
 
 -- Keyword list.
 lex:set_word_list(lexer.KEYWORD, {
-  'or', 'and', 'do', 'let', 'while', 'if', 'for', 'defer', 'read_as',
+  'or', 'and', 'do', 'let', 'while', 'if', 'for', 'defer', 'read_as', 'here',
 })
 
 -- Type list.
