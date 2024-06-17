@@ -40,6 +40,14 @@ fn test > u64 (
   (compile_all_in "examples/euler")
 )
 
+fn compile_example name: u64 > u64 (
+  let soba_path (concat (array "examples/" name ".soba") 3)
+  let no_ext (path (array "build" name) 2)
+  let bc_path (concat (array no_ext ".bc") 2)
+  (cmd (array "./soba" soba_path bc_path) 3)
+  (cmd (array "clang" "-o" no_ext bc_path) 4)
+)
+
 fn extern main argc: u64 argv: u64 > u64 (
   let subcommand (read (add 8 argv))
 
@@ -50,11 +58,14 @@ fn extern main argc: u64 argv: u64 > u64 (
     (bootstrap)
   ) if (streq subcommand "test") do (
     (test)
+  ) if (eq (read8 subcommand) '-) do (
+    (compile_example (add 1 subcommand))
   ) if (streq subcommand "help") do (
     (printf "Usage: ./noodle [SUBCOMMAND]%c" '\n)
     (printf "SUBCOMMANDS:%c" '\n)
     (printf "  bootstrap    Bootstraps the compiler%c" '\n)
     (printf "  test         Runs some tests%c" '\n)
+    (printf "  -<name>      Compiles the example <name>%c" '\n)
     (printf "  help         Prints this help message%c" '\n)
   ) do (
     (dprintf stderr "[ERROR] unknown subcommand `%s`%c" subcommand '\n)
