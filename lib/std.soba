@@ -1,3 +1,6 @@
+let true 1
+let false 0
+
 let HASH 35
 
 let stdout 0
