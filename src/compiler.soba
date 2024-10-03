@@ -16,7 +16,7 @@ fn bump l: u64 byte_count: u64 > u64 (
 )
 
 fn remove_comment l: u64 > u64 (
-  let comment (memchr (read l) 35 (read (add 8 l)))
+  let comment (memchr (read l) HASH (read (add 8 l)))
   and comment
       (write (add 8 l) (sub comment (read l)))
 )
